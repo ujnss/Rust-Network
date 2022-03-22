@@ -20,31 +20,32 @@ fn _testlog() {
 
 fn test01(io: &mut NetIO) {
   let partyid = io.partyid(); // self partyid
-  let msgid = "for test".to_string();
+  let msgid = "for test".to_string(); // "".to_string();
   let mut data = "0-abcd-efgh-ijkl-mnop".to_string().into_bytes();
   data[0] = partyid as u8;
   info!("msgid {:?}", msgid);
   info!("send data from {}: {:?}", partyid, data);
 
   if partyid == 0 {
-    io.send(1, msgid.clone(), &data).unwrap();
-    let d = io.recv(2, msgid.clone()).unwrap();
+    io.send(1, &msgid, &data).unwrap();
+    let d = io.recv(2, &msgid).unwrap();
     info!("recv data from 2: {:?}", d);
   }
   if partyid == 1 {
-    let d = io.recv(0, msgid.clone()).unwrap();
+    let d = io.recv(0, &msgid).unwrap();
     info!("recv data from 0: {:?}", d);
-    io.send(2, msgid.clone(), &data).unwrap();
+    io.send(2, &msgid, &data).unwrap();
   }
   if partyid == 2 {
-    let d = io.recv(1, msgid.clone()).unwrap();
+    let d = io.recv(1, &msgid).unwrap();
     info!("recv data from 1: {:?}", d);
-    io.send(0, msgid.clone(), &data).unwrap();
+    io.send(0, &msgid, &data).unwrap();
   }
 }
 
 fn main() {
-  env::set_var("RUST_LOG", "trace");
+  // env::set_var("RUST_LOG", "trace");
+  env::set_var("RUST_LOG", "info");
   pretty_env_logger::init_timed();
 
   // get "--party_id <id>" from console command
@@ -61,6 +62,9 @@ fn main() {
 
   // Then, do what you want to do
   test01(&mut io);
+
+  // Get the communication statistics
+  info!("{:?}", io.stat());
 
   // Todo!!! Close the connections and stop the server.
   io.stop();

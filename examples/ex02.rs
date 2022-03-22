@@ -26,55 +26,67 @@ fn test01(io: &mut NetIO) {
       thread::sleep(Duration::from_millis(500));
       data[7] = 1;
       info!("send data from {} to 1: {} {:?}", partyid, msgid1, data);
-      io.send(1, msgid1.clone(), &data).unwrap();
+      io.send(1, &msgid1, &data).unwrap();
 
       data[7] = 2;
       info!("send data from {} to 1: {} {:?}", partyid, msgid2, data);
-      io.send(1, msgid2.clone(), &data).unwrap();
+      io.send(1, &msgid2, &data).unwrap();
 
       data[7] = 3;
       info!("send data from {} to 1: {} {:?}", partyid, msgid3, data);
-      io.send(1, msgid3.clone(), &data).unwrap();
+      io.send(1, &msgid3, &data).unwrap();
 
       data[7] = 4;
       info!("send data from {} to 1: {} {:?}", partyid, msgid4, data);
-      io.send(1, msgid4.clone(), &data).unwrap();
+      io.send(1, &msgid4, &data).unwrap();
+
+      //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      let d = io.recv(2, &msgid1).unwrap();
+      info!("recv data from 2 at {}: {} {:?}", partyid, msgid1, d);
     }
     if partyid == 1 {
       // recv unorder
-      let d = io.recv(0, msgid4.clone()).unwrap();
+      let d = io.recv(0, &msgid4).unwrap();
       info!("recv data from 0 at {}: {} {:?}", partyid, msgid4, d);
 
-      let d = io.recv(0, msgid1.clone()).unwrap();
+      let d = io.recv(0, &msgid1).unwrap();
       info!("recv data from 0 at {}: {} {:?}", partyid, msgid1, d);
 
       thread::sleep(Duration::from_millis(300));
       ///////////////////////////////////////////////////////////////////
       data[7] = 3;
       info!("send data from {} to 2: {} {:?}", partyid, msgid3, data);
-      io.send(2, msgid3.clone(), &data).unwrap();
+      io.send(2, &msgid3, &data).unwrap();
       ///////////////////////////////////////////////////////////////////
 
-      let d = io.recv(0, msgid3.clone()).unwrap();
+      let d = io.recv(0, &msgid3).unwrap();
       info!("recv data from 0 at {}: {} {:?}", partyid, msgid3, d);
 
-      let d = io.recv(0, msgid2.clone()).unwrap();
+      let d = io.recv(0, &msgid2).unwrap();
       info!("recv data from 0 at {}: {} {:?}", partyid, msgid2, d);
 
       ///////////////////////////////////////////////////////////////////
       data[7] = 4;
       info!("send data from {} to 2: {} {:?}", partyid, msgid4, data);
-      io.send(2, msgid4.clone(), &data).unwrap();
+      io.send(2, &msgid4, &data).unwrap();
       ///////////////////////////////////////////////////////////////////
+
+      //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      let d = io.recv(2, &msgid1).unwrap();
+      info!("recv data from 2 at {}: {} {:?}", partyid, msgid1, d);
     }
     if partyid == 2 {
-      let d = io.recv(1, msgid4.clone()).unwrap();
+      let d = io.recv(1, &msgid4).unwrap();
       info!("recv data from 1 at {}: {} {:?}", partyid, msgid4, d);
 
-      let d = io.recv(1, msgid3.clone()).unwrap();
+      let d = io.recv(1, &msgid3).unwrap();
       info!("recv data from 1 at {}: {} {:?}", partyid, msgid3, d);
 
       thread::sleep(Duration::from_millis(800));
+
+      //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      data[7] = 11;
+      io.broadcast(&msgid1, &data).unwrap();
     }
   }
 }
@@ -98,6 +110,9 @@ fn main() {
 
   // Then, do what you want to do
   test01(&mut io);
+
+  // Get the communication statistics
+  info!("{:?}", io.stat());
 
   // Todo!!! Close the connections and stop the server.
   io.stop();

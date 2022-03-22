@@ -14,6 +14,7 @@ use std::result;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 // use std::{io, result, thread};
+use ::protobuf::Message;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -29,12 +30,14 @@ pub struct NetIO {
   clients: HashMap<String, NodeServiceClient>, // {nodeid: client}
 
   // nodeid_partyid: HashMap<String, u32>, // {nodeid: partyid}
-  partyid_nodeid: HashMap<u32, String>, // {partyid: nodeid}
+  partyid_nodeid: HashMap<u32, String>, // {partyid: nodeid}, including self
 
   msg_dispatcher: Arc<Mutex<MyMessageDispatcher>>,
   msg_rxs: HashMap<String, Receiver<OneData>>, // msgid --> message // Arc<Mutex<HashMap<String, Receiver<OneData>>>>
   msgid_lock: Arc<Mutex<HashSet<String>>>,     // msgid locker
   cachedid: HashSet<String>,                   // cached msgid for quickly check
+
+  stat: Arc<Mutex<NetStat>>, // the communication statistics
 }
 
 impl NetIO {
@@ -109,6 +112,11 @@ impl NetIO {
         clients.insert(p.nodeid.clone(), client);
       }
     }
+    let stat = NetStat {
+      sent_bytes: 0,
+      sent_bytes_all: 0,
+      sent_count: 0,
+    };
 
     let s = Self {
       partyid: partyid,
@@ -122,6 +130,8 @@ impl NetIO {
       msg_rxs: HashMap::new(),
       msgid_lock: Arc::new(Mutex::new(HashSet::new())),
       cachedid: HashSet::new(),
+
+      stat: Arc::new(Mutex::new(stat)),
     };
     Ok(s)
   }
@@ -141,21 +151,24 @@ impl NetIO {
   pub fn partyid(&self) -> u32 {
     return self.partyid;
   }
+  pub fn stat(&self) -> NetStat {
+    self.stat.lock().unwrap().clone()
+  }
 
-  fn make_partyid_msgid(&mut self, partyid: u32, msgid: String) -> String {
+  fn make_partyid_msgid(&mut self, partyid: u32, msgid: &String) -> String {
     // todo: optimized
-    let msgid_ = partyid.to_string() + &msgid + "88";
+    let msgid_ = partyid.to_string() + msgid;
     return msgid_;
   }
 
-  fn register_channel(&mut self, msgid: String) {
+  fn register_channel(&mut self, msgid: &String) {
     // quickly check
-    if self.cachedid.contains(&msgid) {
+    if self.cachedid.contains(msgid) {
       return;
     }
 
     let mut msgid_lock = self.msgid_lock.lock().unwrap();
-    if msgid_lock.contains(&msgid) {
+    if msgid_lock.contains(msgid) {
       return;
     }
 
@@ -166,12 +179,12 @@ impl NetIO {
 
     self.msg_rxs.insert(msgid.clone(), msg_rx);
     msgid_lock.insert(msgid.clone());
-    self.cachedid.insert(msgid);
+    self.cachedid.insert(msgid.clone());
   }
 
-  pub fn recv(&mut self, partyid: u32, msgid: String) -> result::Result<Vec<u8>, anyhow::Error> {
+  pub fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(partyid, msgid);
-    self.register_channel(msgid_.clone());
+    self.register_channel(&msgid_);
 
     // todo: optimized
     let rx = self.msg_rxs.get_mut(&msgid_).unwrap();
@@ -206,21 +219,26 @@ impl NetIO {
     warn!("{}", errmsg);
     Err(format_err!("{}", errmsg))
   }
-
   pub fn send(
     &mut self,
     partyid: u32,
-    msgid: String,
+    msgid: &String,
     data: &Vec<u8>,
   ) -> result::Result<usize, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(self.partyid, msgid);
-    self.register_channel(msgid_.clone());
+    self.register_channel(&msgid_);
 
     // let call_opt = CallOption::default().wait_for_ready(true).timeout(Duration::from_secs(5));
     let call_opt = CallOption::default().wait_for_ready(true);
     let mut req = StepCallRequest::default();
     req.set_msgid(msgid_);
     req.set_content(data.clone());
+    {
+      let mut stat = self.stat.lock().unwrap();
+      stat.sent_count += 1;
+      stat.sent_bytes += data.len();
+      stat.sent_bytes_all += req.compute_size() as usize;
+    }
 
     let nodeid = self.partyid_nodeid.get(&partyid).unwrap();
     let client = self.clients.get_mut(nodeid).unwrap();
@@ -236,6 +254,23 @@ impl NetIO {
         }
       }
     }
+  }
+  pub fn broadcast(
+    &mut self,
+    msgid: &String,
+    data: &Vec<u8>,
+  ) -> result::Result<usize, anyhow::Error> {
+    // ??cannot borrow `*self` as mutable because it is also borrowed as immutable
+    let mut peerids = Vec::new();
+    for k in self.partyid_nodeid.keys() {
+      if *k != self.partyid {
+        peerids.push(*k);
+      }
+    }
+    for peerid in peerids {
+      self.send(peerid, msgid, data)?;
+    }
+    Ok(data.len())
   }
 
   // todo: nodeid version

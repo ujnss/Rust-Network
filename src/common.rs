@@ -10,11 +10,18 @@ pub struct DataQueue {
   pub data: VecDeque<OneData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Participant {
   pub partyid: u32,
   pub nodeid: String, // not use now
   pub addr: String,   // valid IPv4 or domain
+}
+
+#[derive(Debug, Clone)]
+pub struct NetStat {
+  pub sent_count: usize,
+  pub sent_bytes: usize,     // the real data size
+  pub sent_bytes_all: usize, // total size. protobuf serialized data (message id, real data, etc.)
 }
 
 // for debug or simple useage
