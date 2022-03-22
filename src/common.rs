@@ -24,7 +24,7 @@ pub fn get_default_participants(parties: u32) -> Vec<Participant> {
     let participant = Participant {
       partyid: i,
       nodeid: "node".to_string() + &i.to_string(),
-      addr: "127.0.0.1:".to_string() + &(i + 10000).to_string(),
+      addr: "127.0.0.1:".to_string() + &(i + 40000).to_string(),
     };
     participants.push(participant);
   }

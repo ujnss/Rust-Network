@@ -15,9 +15,9 @@ pub struct MyMessageDispatcher {
 }
 
 impl MyMessageDispatcher {
-  // pub fn stop(&mut self) {
-  //   info!("stop dispatcher todo!");
-  // }
+  pub fn stop(&mut self) {
+    info!("stop dispatcher todo!");
+  }
 
   pub fn spawn(&mut self) {
     info!("spawn dispatcher");
@@ -38,7 +38,7 @@ impl MyMessageDispatcher {
                 let x = msg_txs.get_mut(msgid);
                 match x {
                   Some(tx) => {
-                    warn!(">found tx of msgid:{}", msgid);
+                    debug!(">found tx of msgid: {}", msgid);
                     let message = req.get_content();
                     let this_party_received_message = OneData {
                       data: message.to_vec(),
@@ -46,7 +46,7 @@ impl MyMessageDispatcher {
                     let _ = tx.send(this_party_received_message);
                   }
                   None => {
-                    warn!(">not found tx of msgid:{}", msgid);
+                    warn!(">not found tx of msgid: {}", msgid);
                     vdq.push_front(req);
                     break;
                   }
@@ -57,14 +57,14 @@ impl MyMessageDispatcher {
         }
 
         // step2, if the queue does not have any data
-        let msg_message = step_rx.recv_timeout(Duration::from_secs(2));
+        let msg_message = step_rx.recv_timeout(Duration::from_secs(1));
         match msg_message {
           Err(err) => match err {
             crossbeam_channel::RecvTimeoutError::Timeout => {
-              debug!("timeout");
+              debug!("step channel recv timeout");
             }
             crossbeam_channel::RecvTimeoutError::Disconnected => {
-              error!("step_rx err {:?}", err);
+              error!("step channel recv err {:?}", err);
               break;
             }
           },
@@ -76,14 +76,14 @@ impl MyMessageDispatcher {
             let x = msg_txs.get_mut(msgid);
             match x {
               Some(tx) => {
-                warn!("<found tx of msgid:{}", msgid);
+                debug!("<found tx of msgid: {}", msgid);
                 let this_party_received_message = OneData {
                   data: message.to_vec(),
                 };
                 let _ = tx.send(this_party_received_message);
               }
               None => {
-                warn!("<not found tx of msgid:{}", msgid);
+                warn!("<not found tx of msgid: {}", msgid);
                 if !reqs.contains_key(msgid) {
                   reqs.insert(msgid.to_string(), VecDeque::new());
                 }
@@ -99,7 +99,7 @@ impl MyMessageDispatcher {
   }
 
   pub fn register(&mut self, msgid: String, tx: Sender<OneData>) {
-    info!("register msgid:{}", msgid);
+    info!("register msgid: {}", msgid);
     let mut msg_txs = self.msg_txs.lock().unwrap();
     msg_txs.insert(msgid, tx);
   }
@@ -133,7 +133,7 @@ impl NodeService for MyNodeService {
     // }
 
     let resp = StepCallResponse::default();
-    info!("recv req {:?}", req);
+    debug!("recv req {:?}", req);
 
     let f = sink
       .success(resp)

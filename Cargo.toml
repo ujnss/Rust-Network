@@ -52,3 +52,8 @@ crossbeam-channel = "0.5"
 [[example]]
 name = "ex01"
 path = "examples/ex01.rs"
+
+
+[[example]]
+name = "ex02"
+path = "examples/ex02.rs"

@@ -10,6 +10,7 @@ use log::*;
 use std::collections::{HashMap, HashSet};
 // use std::env;
 // use std::io::Read;
+use std::result;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 // use std::{io, result, thread};
@@ -37,10 +38,10 @@ pub struct NetIO {
 }
 
 impl NetIO {
-  pub fn new(partyid: u32, participants: &Vec<Participant>) -> Self {
+  pub fn new(partyid: u32, participants: &Vec<Participant>) -> result::Result<Self, anyhow::Error> {
     // todo: valid check for partyid, addr, etc.
     let parties = participants.len();
-    info!("participants: {}/{} {:?}", partyid, parties, participants,);
+    info!("participants: {}/{} {:?}", partyid, parties, participants);
 
     // init
     let mut clients = HashMap::new();
@@ -73,10 +74,10 @@ impl NetIO {
     let msg_node = MyNodeService { step_tx: step_tx };
     let msg_node_service = create_node_service(msg_node);
 
-    let quota = ResourceQuota::new(Some("TssServerQuota")).resize_memory(1024 * 1024);
+    let quota = ResourceQuota::new(Some("ServerQuota")).resize_memory(1024 * 1024);
     let ch_builder = ChannelBuilder::new(env.clone())
       .set_resource_quota(quota)
-      .keepalive_time(Duration::from_secs(5))
+      .keepalive_time(Duration::from_secs(6))
       .keepalive_timeout(Duration::from_secs(21));
 
     let self_node = participants.get(partyid as usize).unwrap();
@@ -88,8 +89,7 @@ impl NetIO {
       .bind(host, port)
       .channel_args(ch_builder.build_args())
       .build()
-      .map_err(|e| format_err!("Build server Err: {}", e))
-      .unwrap();
+      .map_err(|e| format_err!("Build server Err: {}", e))?;
     server.start();
 
     for (host, port) in server.bind_addrs() {
@@ -102,6 +102,7 @@ impl NetIO {
       // nodeid_partyid.insert(p.nodeid.clone(), p.partyid);
       partyid_nodeid.insert(p.partyid, p.nodeid.clone());
       if partyid != p.partyid {
+        info!("connect to {} {}", p.partyid, p.addr);
         let env = Arc::new(EnvBuilder::new().build());
         let ch = ChannelBuilder::new(env).connect(&p.addr);
         let client = NodeServiceClient::new(ch);
@@ -109,7 +110,7 @@ impl NetIO {
       }
     }
 
-    Self {
+    let s = Self {
       partyid: partyid,
       server: server,
       clients: clients,
@@ -121,7 +122,8 @@ impl NetIO {
       msg_rxs: HashMap::new(),
       msgid_lock: Arc::new(Mutex::new(HashSet::new())),
       cachedid: HashSet::new(),
-    }
+    };
+    Ok(s)
   }
 
   pub fn init(&mut self) {}
@@ -131,6 +133,10 @@ impl NetIO {
 
     // close server
     self.server.shutdown();
+    {
+      let mut _dispatcher = self.msg_dispatcher.lock().map_err(|_| error!("")).unwrap();
+      _dispatcher.stop();
+    }
   }
   pub fn partyid(&self) -> u32 {
     return self.partyid;
@@ -163,7 +169,7 @@ impl NetIO {
     self.cachedid.insert(msgid);
   }
 
-  pub fn recv(&mut self, partyid: u32, msgid: String) -> Vec<u8> {
+  pub fn recv(&mut self, partyid: u32, msgid: String) -> result::Result<Vec<u8>, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(partyid, msgid);
     self.register_channel(msgid_.clone());
 
@@ -171,34 +177,42 @@ impl NetIO {
     let rx = self.msg_rxs.get_mut(&msgid_).unwrap();
 
     let mut loop_counter = 1;
+    let errmsg;
     loop {
       loop_counter = loop_counter + 1;
-      if loop_counter > 30 {
-        warn!("timeout loop_counter:{}", loop_counter);
+      if loop_counter > 60 {
+        errmsg = format!("recv timeout loop_counter:{}", loop_counter);
         break;
       }
 
-      let res = rx.recv_timeout(Duration::from_secs(2));
+      let res = rx.recv_timeout(Duration::from_secs(1));
       match res {
         Err(err) => match err {
           crossbeam_channel::RecvTimeoutError::Timeout => {
-            debug!("timeout");
+            debug!("channel recv timeout, retry");
           }
           crossbeam_channel::RecvTimeoutError::Disconnected => {
-            error!("recv err {:?}", err);
+            errmsg = format!("channel recv err {:?}", err);
             break;
           }
         },
         Ok(vu8) => {
           // todo: optimized
-          return vu8.data;
+          return Ok(vu8.data);
         }
       }
     }
 
-    return Vec::new();
+    warn!("{}", errmsg);
+    Err(format_err!("{}", errmsg))
   }
-  pub fn send(&mut self, partyid: u32, msgid: String, data: &Vec<u8>) -> usize {
+
+  pub fn send(
+    &mut self,
+    partyid: u32,
+    msgid: String,
+    data: &Vec<u8>,
+  ) -> result::Result<usize, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(self.partyid, msgid);
     self.register_channel(msgid_.clone());
 
@@ -210,10 +224,18 @@ impl NetIO {
 
     let nodeid = self.partyid_nodeid.get(&partyid).unwrap();
     let client = self.clients.get_mut(nodeid).unwrap();
-    let reply = client.step_call_opt(&req, call_opt).unwrap();
-
-    info!("send reply {:?}", reply);
-    return 0;
+    let reply = client.step_call_opt(&req, call_opt);
+    debug!("send reply {:?}", reply);
+    match reply {
+      Err(err) => Err(format_err!("send reply Err: {}", err)),
+      Ok(res) => {
+        if res.status == 0 {
+          Ok(data.len())
+        } else {
+          Err(format_err!("send reply Err: {:?}", res))
+        }
+      }
+    }
   }
 
   // todo: nodeid version
