@@ -92,7 +92,8 @@ fn test01(io: &mut NetIO) {
 }
 
 fn main() {
-  // env::set_var("RUST_LOG", "trace");
+  // Set the log level and init the logger
+  //! Note, you can replace `pretty_env_logger` with your favorite log library
   env::set_var("RUST_LOG", "info");
   pretty_env_logger::init_timed();
 
@@ -114,7 +115,7 @@ fn main() {
   // Get the communication statistics
   info!("{:?}", io.stat());
 
-  // Todo!!! Close the connections and stop the server.
+  // Close the connections and stop the server.
   io.stop();
 
   info!("end ok");

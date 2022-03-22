@@ -7,17 +7,6 @@ use structopt::StructOpt;
 use xio::common::*;
 use xio::netio::*;
 
-fn _testlog() {
-  env::set_var("RUST_LOG", "trace");
-  pretty_env_logger::init();
-
-  error!("this is a error");
-  warn!("this is a warning");
-  info!("this is a information");
-  debug!("this is a debug");
-  trace!("this is a trace");
-}
-
 fn test01(io: &mut NetIO) {
   let partyid = io.partyid(); // self partyid
   let msgid = "for test".to_string(); // "".to_string();
@@ -44,7 +33,8 @@ fn test01(io: &mut NetIO) {
 }
 
 fn main() {
-  // env::set_var("RUST_LOG", "trace");
+  // Set the log level and init the logger
+  //! Note, you can replace `pretty_env_logger` with your favorite log library
   env::set_var("RUST_LOG", "info");
   pretty_env_logger::init_timed();
 
@@ -66,7 +56,7 @@ fn main() {
   // Get the communication statistics
   info!("{:?}", io.stat());
 
-  // Todo!!! Close the connections and stop the server.
+  // Close the connections and stop the server.
   io.stop();
 
   info!("end ok");

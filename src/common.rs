@@ -14,7 +14,7 @@ pub struct DataQueue {
 pub struct Participant {
   pub partyid: u32,
   pub nodeid: String, // not use now
-  pub addr: String,   // valid IPv4 or domain
+  pub addr: String,   // valid IPv4
 }
 
 #[derive(Debug, Clone)]
@@ -24,7 +24,7 @@ pub struct NetStat {
   pub sent_bytes_all: usize, // total size. protobuf serialized data (message id, real data, etc.)
 }
 
-// for debug or simple useage
+// for debug or simple usage
 pub fn get_default_participants(parties: u32) -> Vec<Participant> {
   let mut participants = Vec::new();
   for i in 0..parties {

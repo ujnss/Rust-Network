@@ -3,6 +3,7 @@
   - [Overview](#overview)
   - [Examples](#examples)
   - [Usage](#usage)
+  - [APIs](#apis)
   - [TODO](#todo)
 
 
@@ -46,6 +47,10 @@ If this repo is private, `clone this repo first`, and then:
 [dependencies]
 xio = { path = "/path/to/Rust-Network" }
 ```
+
+## APIs
+
+[Here](./APIs.md).
 
 
 ## TODO
