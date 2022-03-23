@@ -1,3 +1,6 @@
+//!
+//!
+
 use crate::common::*;
 use crate::node_service::*;
 use crate::rsio::*;
@@ -25,22 +28,55 @@ pub struct NetIOCommandOpt {
 }
 
 pub struct NetIO {
-  partyid: u32, // self party id
+  /// self party id
+  partyid: u32,
   server: Server,
-  clients: HashMap<String, NodeServiceClient>, // {nodeid: client}
+  /// {nodeid: client}
+  clients: HashMap<String, NodeServiceClient>,
 
-  // nodeid_partyid: HashMap<String, u32>, // {nodeid: partyid}
-  partyid_nodeid: HashMap<u32, String>, // {partyid: nodeid}, including self
+  /// {nodeid: partyid}, including self
+  // nodeid_partyid: HashMap<String, u32>,
+  /// {partyid: nodeid}, including self
+  partyid_nodeid: HashMap<u32, String>,
 
+  /// message dispatcher, (step_tx, step_rx)
   msg_dispatcher: Arc<Mutex<MyMessageDispatcher>>,
-  msg_rxs: HashMap<String, Receiver<OneData>>, // msgid --> message // Arc<Mutex<HashMap<String, Receiver<OneData>>>>
-  msgid_lock: Arc<Mutex<HashSet<String>>>,     // msgid locker
-  cachedid: HashSet<String>,                   // cached msgid for quickly check
 
-  stat: Arc<Mutex<NetStat>>, // the communication statistics
+  /// {msgid: message}, recv message from MyMessageDispatcher: msg_txs.get(msgid)
+  /// maybe use Arc<Mutex<HashMap<String, Receiver<OneData>>>> ?
+  msg_rxs: HashMap<String, Receiver<OneData>>,
+  /// msgid locker
+  msgid_lock: Arc<Mutex<HashSet<String>>>,
+  /// cached msgid for quickly check
+  cachedid: HashSet<String>,
+
+  /// the communication statistics
+  stat: Arc<Mutex<NetStat>>,
+
+  /// recv timeout, default is 300s
+  recv_timeout: usize,
 }
 
 impl NetIO {
+  //!
+  //! Simple example:
+  //!
+  //! ```rust
+  //! use xio::common::*;
+  //! use xio::netio::*;
+  //!
+  //! let partyid = 0;
+  //! let participants = get_default_participants(1);
+  //!
+  //! let mut io = NetIO::new(partyid, &participants).expect("new NetIO");
+  //! io.stop();
+  //! ```
+  //!
+  //! For more details see [ex01.rs](../../src/ex01/ex01.rs.html),
+  //! [ex02.rs](../../src/ex02/ex02.rs.html).
+  //!
+
+  /// New a NetIO with self `partyid` and the `participants`.
   pub fn new(partyid: u32, participants: &Vec<Participant>) -> result::Result<Self, anyhow::Error> {
     // todo: valid check for partyid, addr, etc.
     let parties = participants.len();
@@ -132,11 +168,13 @@ impl NetIO {
       cachedid: HashSet::new(),
 
       stat: Arc::new(Mutex::new(stat)),
+
+      recv_timeout: 300,
     };
     Ok(s)
   }
 
-  pub fn init(&mut self) {}
+  // pub fn init(&mut self) {}
   pub fn stop(&mut self) {
     // todo! close & shutdown
     // close client
@@ -148,11 +186,20 @@ impl NetIO {
       _dispatcher.stop();
     }
   }
+
+  /// Return self partyid.
   pub fn partyid(&self) -> u32 {
     return self.partyid;
   }
+
+  /// Get the communication statistics.
   pub fn stat(&self) -> NetStat {
     self.stat.lock().unwrap().clone()
+  }
+
+  pub fn set_recv_timeout(&mut self, to: usize) {
+    info!("set recv timeout:{}", to);
+    self.recv_timeout = to;
   }
 
   fn make_partyid_msgid(&mut self, partyid: u32, msgid: &String) -> String {
@@ -182,6 +229,7 @@ impl NetIO {
     self.cachedid.insert(msgid.clone());
   }
 
+  /// Recv a message from `partyid` with `msgid`.
   pub fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(partyid, msgid);
     self.register_channel(&msgid_);
@@ -193,7 +241,7 @@ impl NetIO {
     let errmsg;
     loop {
       loop_counter = loop_counter + 1;
-      if loop_counter > 60 {
+      if loop_counter > self.recv_timeout {
         errmsg = format!("recv timeout loop_counter:{}", loop_counter);
         break;
       }
@@ -219,6 +267,9 @@ impl NetIO {
     warn!("{}", errmsg);
     Err(format_err!("{}", errmsg))
   }
+
+  /// Send a message `data` to `partyid` with `msgid`.
+  ///
   pub fn send(
     &mut self,
     partyid: u32,
@@ -255,6 +306,8 @@ impl NetIO {
       }
     }
   }
+
+  /// Broadcast a message `data` to other parties(peers) with `msgid`.
   pub fn broadcast(
     &mut self,
     msgid: &String,
@@ -272,6 +325,11 @@ impl NetIO {
     }
     Ok(data.len())
   }
+
+  // /// Sync each other
+  // pub fn sync(&mut self) {
+
+  // }
 
   // todo: nodeid version
   // fn make_nodeid_msgid(&mut self, nodeid: String, msgid: String) -> String {

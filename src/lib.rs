@@ -1,3 +1,6 @@
+//!
+//! A lightweight network io library.
+//!
 mod rsio;
 mod rsio_grpc;
 

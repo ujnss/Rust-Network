@@ -64,7 +64,7 @@ impl MyMessageDispatcher {
               debug!("step channel recv timeout");
             }
             crossbeam_channel::RecvTimeoutError::Disconnected => {
-              error!("step channel recv err {:?}", err);
+              warn!("step channel recv err {:?}", err);
               break;
             }
           },

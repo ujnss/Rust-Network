@@ -3,7 +3,7 @@
   - [Overview](#overview)
   - [Examples](#examples)
   - [Usage](#usage)
-  - [APIs](#apis)
+  - [Docs](#docs)
   - [TODO](#todo)
 
 
@@ -48,11 +48,28 @@ If this repo is private, `clone this repo first`, and then:
 xio = { path = "/path/to/Rust-Network" }
 ```
 
-## APIs
+## Docs
 
-[Here](./APIs.md).
+- First, generate the document by running the following commands:
+
+```sh
+cargo doc --no-deps --all; cargo doc --no-deps --examples
+```
+
+- Then view the document by running the following commands:
+
+```sh
+$ cd target/doc
+$ python3 -m http.server
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+```
+
+- Open a browser and input like `127.0.0.1:8000/xio/index.html`.
+
+
 
 
 ## TODO
 
-add error/stop/...
+- add error/stop/...
+- implement a thread version to reduce the communication size (use thread-id[int] instead of msgid[str]).

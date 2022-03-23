@@ -6,25 +6,33 @@ pub struct OneData {
 }
 
 #[derive(Debug, Clone)]
-pub struct DataQueue {
+struct DataQueue {
   pub data: VecDeque<OneData>,
 }
 
+/// Participant info
 #[derive(Debug, Clone)]
 pub struct Participant {
+  /// The party id, from 0 to n-1.
   pub partyid: u32,
-  pub nodeid: String, // not use now
-  pub addr: String,   // valid IPv4
+  /// The node id. Not used now.
+  pub nodeid: String,
+  /// Now only supports valid IPv4.
+  pub addr: String,
 }
 
+/// The communication statistics
 #[derive(Debug, Clone)]
 pub struct NetStat {
+  /// Number of calls to `io.send`.
   pub sent_count: usize,
-  pub sent_bytes: usize,     // the real data size
-  pub sent_bytes_all: usize, // total size. protobuf serialized data (message id, real data, etc.)
+  /// The real data size.
+  pub sent_bytes: usize,
+  /// Total size. Protobuf serialized data (message id, real data, etc.) size.
+  pub sent_bytes_all: usize,
 }
 
-// for debug or simple usage
+/// For debug or simple usage.
 pub fn get_default_participants(parties: u32) -> Vec<Participant> {
   let mut participants = Vec::new();
   for i in 0..parties {
