@@ -148,11 +148,6 @@ impl NetIO {
         clients.insert(p.nodeid.clone(), client);
       }
     }
-    let stat = NetStat {
-      sent_bytes: 0,
-      sent_bytes_all: 0,
-      sent_count: 0,
-    };
 
     let s = Self {
       partyid: partyid,
@@ -167,7 +162,7 @@ impl NetIO {
       msgid_lock: Arc::new(Mutex::new(HashSet::new())),
       cachedid: HashSet::new(),
 
-      stat: Arc::new(Mutex::new(stat)),
+      stat: Arc::new(Mutex::new(NetStat::default())),
 
       recv_timeout: 300,
     };
@@ -269,7 +264,6 @@ impl NetIO {
   }
 
   /// Send a message `data` to `partyid` with `msgid`.
-  ///
   pub fn send(
     &mut self,
     partyid: u32,

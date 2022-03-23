@@ -22,7 +22,7 @@ pub struct Participant {
 }
 
 /// The communication statistics
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct NetStat {
   /// Number of calls to `io.send`.
   pub sent_count: usize,
