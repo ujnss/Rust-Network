@@ -15,8 +15,6 @@
 
 ## Examples
 
-Ref [ex01.rs](./examples/ex01.rs).
-
 Run in 3 terminal consoles:
 
 ```sh
@@ -25,12 +23,14 @@ cargo run --example ex01 -- --party_id 1
 cargo run --example ex01 -- --party_id 2
 ```
 
-[or]
-
+[or] run the following script for quick test:
 
 ```sh
 ./run.sh
 ```
+
+For more details ref [ex01.rs](./examples/ex01.rs), [ex02.rs](./examples/ex02.rs), [ex03.rs](./examples/ex03.rs).
+
 
 ## Usage
 

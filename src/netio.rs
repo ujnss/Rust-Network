@@ -30,6 +30,7 @@ pub struct NetIOCommandOpt {
 pub struct NetIO {
   /// self party id
   partyid: u32,
+  parties: u32,
   server: Server,
   /// {nodeid: client}
   clients: HashMap<String, NodeServiceClient>,
@@ -53,6 +54,8 @@ pub struct NetIO {
   /// the communication statistics
   stat: Arc<Mutex<NetStat>>,
 
+  /// send timeout, default is 60s
+  send_timeout: usize,
   /// recv timeout, default is 300s
   recv_timeout: usize,
 }
@@ -79,7 +82,7 @@ impl NetIO {
   /// New a NetIO with self `partyid` and the `participants`.
   pub fn new(partyid: u32, participants: &Vec<Participant>) -> result::Result<Self, anyhow::Error> {
     // todo: valid check for partyid, addr, etc.
-    let parties = participants.len();
+    let parties = participants.len() as u32;
     info!("participants: {}/{} {:?}", partyid, parties, participants);
 
     // init
@@ -141,7 +144,7 @@ impl NetIO {
       // nodeid_partyid.insert(p.nodeid.clone(), p.partyid);
       partyid_nodeid.insert(p.partyid, p.nodeid.clone());
       if partyid != p.partyid {
-        info!("connect to {} {}", p.partyid, p.addr);
+        info!("{} connect to {} {}", partyid, p.partyid, p.addr);
         let env = Arc::new(EnvBuilder::new().build());
         let ch = ChannelBuilder::new(env).connect(&p.addr);
         let client = NodeServiceClient::new(ch);
@@ -151,6 +154,7 @@ impl NetIO {
 
     let s = Self {
       partyid: partyid,
+      parties: parties,
       server: server,
       clients: clients,
 
@@ -164,6 +168,7 @@ impl NetIO {
 
       stat: Arc::new(Mutex::new(NetStat::default())),
 
+      send_timeout: 60,
       recv_timeout: 300,
     };
     Ok(s)
@@ -187,9 +192,18 @@ impl NetIO {
     return self.partyid;
   }
 
+  pub fn parties(&self) -> u32 {
+    return self.parties;
+  }
+
   /// Get the communication statistics.
   pub fn stat(&self) -> NetStat {
     self.stat.lock().unwrap().clone()
+  }
+
+  pub fn set_send_timeout(&mut self, to: usize) {
+    info!("set send timeout:{}", to);
+    self.send_timeout = to;
   }
 
   pub fn set_recv_timeout(&mut self, to: usize) {
@@ -264,6 +278,7 @@ impl NetIO {
   }
 
   /// Send a message `data` to `partyid` with `msgid`.
+  ///
   pub fn send(
     &mut self,
     partyid: u32,
@@ -273,8 +288,10 @@ impl NetIO {
     let msgid_ = self.make_partyid_msgid(self.partyid, msgid);
     self.register_channel(&msgid_);
 
-    // let call_opt = CallOption::default().wait_for_ready(true).timeout(Duration::from_secs(5));
-    let call_opt = CallOption::default().wait_for_ready(true);
+    let call_opt = CallOption::default()
+      .wait_for_ready(true)
+      .timeout(Duration::from_secs(self.send_timeout as u64));
+    // let call_opt = CallOption::default().wait_for_ready(true);
     let mut req = StepCallRequest::default();
     req.set_msgid(msgid_);
     req.set_content(data.clone());

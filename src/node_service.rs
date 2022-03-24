@@ -46,7 +46,7 @@ impl MyMessageDispatcher {
                     let _ = tx.send(this_party_received_message);
                   }
                   None => {
-                    warn!(">not found tx of msgid: {}", msgid);
+                    debug!(">not found tx of msgid: {}", msgid); // warn!
                     vdq.push_front(req);
                     break;
                   }
@@ -83,7 +83,7 @@ impl MyMessageDispatcher {
                 let _ = tx.send(this_party_received_message);
               }
               None => {
-                warn!("<not found tx of msgid: {}", msgid);
+                debug!("<not found tx of msgid: {}", msgid); // warn!
                 if !reqs.contains_key(msgid) {
                   reqs.insert(msgid.to_string(), VecDeque::new());
                 }
