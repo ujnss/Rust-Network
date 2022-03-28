@@ -19,7 +19,5 @@ fn test_log() {
 
 #[test]
 fn test_participants() {
-  env::set_var("RUST_LOG", "trace");
-  pretty_env_logger::init();
   let _ = get_default_participants(3);
 }
