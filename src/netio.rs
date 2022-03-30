@@ -5,26 +5,55 @@ use crate::common::*;
 use crate::node_service::*;
 use crate::rsio::*;
 use crate::rsio_grpc::*;
+use ::protobuf::Message;
 use anyhow::format_err;
 use crossbeam_channel::*;
-// use futures::executor::{ThreadPool, ThreadPoolBuilder};
 use grpcio::*;
 use log::*;
 use std::collections::{HashMap, HashSet};
-// use std::env;
-// use std::io::Read;
 use std::result;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-// use std::{io, result, thread};
-use ::protobuf::Message;
 use structopt::StructOpt;
+// use std::{io, result, thread};
+// use std::env;
+// use std::io::Read;
+// use futures::executor::{ThreadPool, ThreadPoolBuilder};
 
 #[derive(StructOpt, Debug)]
 #[structopt(rename_all = "snake_case")]
 pub struct NetIOCommandOpt {
   #[structopt(short, long, default_value = "-1")]
   pub party_id: u32,
+}
+
+pub trait INetIO {
+  // pub fn init(&mut self) {}
+  fn stop(&mut self);
+
+  /// Return self partyid.
+  fn partyid(&self) -> u32;
+
+  fn parties(&self) -> u32;
+
+  /// Get the communication statistics.
+  fn stat(&self) -> NetStat;
+  fn set_send_timeout(&mut self, to: usize);
+
+  fn set_recv_timeout(&mut self, to: usize);
+
+  /// Recv a message from `partyid` with `msgid`.
+  fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error>;
+
+  /// Send a message `data` to `partyid` with `msgid`.
+  fn send(
+    &mut self,
+    partyid: u32,
+    msgid: &String,
+    data: &Vec<u8>,
+  ) -> result::Result<usize, anyhow::Error>;
+  /// Broadcast a message `data` to other parties(peers) with `msgid`.
+  fn broadcast(&mut self, msgid: &String, data: &Vec<u8>) -> result::Result<usize, anyhow::Error>;
 }
 
 pub struct NetIO {
@@ -174,43 +203,6 @@ impl NetIO {
     Ok(s)
   }
 
-  // pub fn init(&mut self) {}
-  pub fn stop(&mut self) {
-    // todo! close & shutdown
-    // close client
-
-    // close server
-    self.server.shutdown();
-    {
-      let mut _dispatcher = self.msg_dispatcher.lock().map_err(|_| error!("")).unwrap();
-      _dispatcher.stop();
-    }
-  }
-
-  /// Return self partyid.
-  pub fn partyid(&self) -> u32 {
-    return self.partyid;
-  }
-
-  pub fn parties(&self) -> u32 {
-    return self.parties;
-  }
-
-  /// Get the communication statistics.
-  pub fn stat(&self) -> NetStat {
-    self.stat.lock().unwrap().clone()
-  }
-
-  pub fn set_send_timeout(&mut self, to: usize) {
-    info!("set send timeout:{}", to);
-    self.send_timeout = to;
-  }
-
-  pub fn set_recv_timeout(&mut self, to: usize) {
-    info!("set recv timeout:{}", to);
-    self.recv_timeout = to;
-  }
-
   fn make_partyid_msgid(&mut self, partyid: u32, msgid: &String) -> String {
     // todo: optimized
     let msgid_ = partyid.to_string() + msgid;
@@ -237,9 +229,48 @@ impl NetIO {
     msgid_lock.insert(msgid.clone());
     self.cachedid.insert(msgid.clone());
   }
+}
+
+impl INetIO for NetIO {
+  // pub fn init(&mut self) {}
+  fn stop(&mut self) {
+    // todo! close & shutdown
+    // close client
+
+    // close server
+    self.server.shutdown();
+    {
+      let mut _dispatcher = self.msg_dispatcher.lock().map_err(|_| error!("")).unwrap();
+      _dispatcher.stop();
+    }
+  }
+
+  /// Return self partyid.
+  fn partyid(&self) -> u32 {
+    return self.partyid;
+  }
+
+  fn parties(&self) -> u32 {
+    return self.parties;
+  }
+
+  /// Get the communication statistics.
+  fn stat(&self) -> NetStat {
+    self.stat.lock().unwrap().clone()
+  }
+
+  fn set_send_timeout(&mut self, to: usize) {
+    info!("set send timeout:{}", to);
+    self.send_timeout = to;
+  }
+
+  fn set_recv_timeout(&mut self, to: usize) {
+    info!("set recv timeout:{}", to);
+    self.recv_timeout = to;
+  }
 
   /// Recv a message from `partyid` with `msgid`.
-  pub fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error> {
+  fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error> {
     let msgid_ = self.make_partyid_msgid(partyid, msgid);
     self.register_channel(&msgid_);
 
@@ -279,7 +310,7 @@ impl NetIO {
 
   /// Send a message `data` to `partyid` with `msgid`.
   ///
-  pub fn send(
+  fn send(
     &mut self,
     partyid: u32,
     msgid: &String,
@@ -319,11 +350,7 @@ impl NetIO {
   }
 
   /// Broadcast a message `data` to other parties(peers) with `msgid`.
-  pub fn broadcast(
-    &mut self,
-    msgid: &String,
-    data: &Vec<u8>,
-  ) -> result::Result<usize, anyhow::Error> {
+  fn broadcast(&mut self, msgid: &String, data: &Vec<u8>) -> result::Result<usize, anyhow::Error> {
     // ??cannot borrow `*self` as mutable because it is also borrowed as immutable
     let mut peerids = Vec::new();
     for k in self.partyid_nodeid.keys() {
