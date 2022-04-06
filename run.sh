@@ -20,7 +20,7 @@ else
 fi
 wait
 
-ps -ef | grep -E "${prog}" | grep party_id | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
-ps -ef | grep -E "ex01|ex02|ex03" | grep party_id | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
+# ps -ef | grep -E "${prog}" | grep party_id | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
+# ps -ef | grep -E "ex01|ex02|ex03" | grep party_id | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 
 echo "DONE"

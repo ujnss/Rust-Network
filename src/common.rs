@@ -1,6 +1,6 @@
 use anyhow::format_err;
 use serde::Deserialize;
-use std::collections::VecDeque;
+// use std::collections::VecDeque;
 use std::fs;
 use std::path::Path;
 
@@ -9,10 +9,10 @@ pub struct OneData {
   pub data: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
-struct DataQueue {
-  pub data: VecDeque<OneData>,
-}
+// #[derive(Debug, Clone)]
+// struct DataQueue {
+//   pub data: VecDeque<OneData>,
+// }
 
 /// The communication statistics
 #[derive(Default, Debug, Clone)]
@@ -43,7 +43,7 @@ impl Participant {
       let participant = Participant {
         partyid: i,
         nodeid: "node".to_string() + &i.to_string(),
-        addr: "127.0.0.1:".to_string() + &(i + 40000).to_string(),
+        addr: "127.0.0.1:".to_string() + &(i + 13500).to_string(),
       };
       participants.push(participant);
     }

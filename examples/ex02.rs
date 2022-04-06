@@ -100,7 +100,7 @@ fn main() {
   // get "--party_id <id>" from console command
   let opt = NetIOCommandOpt::from_args();
   let partyid = opt.party_id;
-  info!("partyid: {}", partyid);
+  info!("netio option: {:?}", opt);
 
   // Set the participants, from default value[for debug/test or simple usage]
   // You can set it(struct Participant) according to your needs.
