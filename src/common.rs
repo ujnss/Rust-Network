@@ -40,12 +40,15 @@ pub struct Participant {
 
 impl Participant {
   pub fn from_default(parties: u32) -> Vec<Participant> {
+    return Participant::from_default_baseport(parties, 13500);
+  }
+  pub fn from_default_baseport(parties: u32, base_port: u32) -> Vec<Participant> {
     let mut participants = Vec::new();
     for i in 0..parties {
       let participant = Participant {
         partyid: i,
         nodeid: "node".to_string() + &i.to_string(),
-        addr: "127.0.0.1:".to_string() + &(i + 13500).to_string(),
+        addr: "127.0.0.1:".to_string() + &(i + base_port).to_string(),
       };
       participants.push(participant);
     }

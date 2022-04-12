@@ -44,7 +44,7 @@ fn main() {
 
   // Set the participants, from default value[for debug/test or simple usage]
   // You can set it(struct Participant) according to your needs.
-  let participants = get_default_participants(3);
+  let participants = make_default_participants!(3);
 
   // New a NetIO
   let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");

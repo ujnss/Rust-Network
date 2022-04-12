@@ -12,6 +12,16 @@ mod node_service;
 use crate::common::NetStat;
 use std::result;
 
+#[macro_export]
+macro_rules! make_default_participants {
+  ($parties:expr, $base_port:expr) => {{
+    Participant::from_default_baseport($parties, $base_port)
+  }};
+  ($parties:expr) => {{
+    Participant::from_default($parties)
+  }};
+}
+
 pub trait NetIO {
   // pub fn init(&mut self) {}
   fn stop(&mut self);
