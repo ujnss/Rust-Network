@@ -4,10 +4,9 @@ extern crate log;
 
 use std::env;
 use std::thread;
-use xio::common::*;
-use xio::netio::*;
+use xio::{common::*, netio::*, *};
 
-fn test01(io: &mut NetIO) {
+fn test01(io: &mut dyn NetIO) {
   let partyid = io.partyid(); // self partyid
   let msgid1 = "testmessgeidone".to_string();
   let msgid2 = "testmessgeidtwo".to_string();
@@ -49,8 +48,8 @@ fn main() {
     let dispatcher = thread::spawn(move || {
       info!("partyid: {}", partyid);
       let participants = get_default_participants(parties);
-      let mut io = NetIO::new(partyid, &participants).expect("new NetIO");
-      test01(&mut io);
+      let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
+      test01(io);
       info!("partyid: {} {:?}", partyid, io.stat());
       io.stop();
     });

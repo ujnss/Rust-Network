@@ -6,10 +6,9 @@ use std::env;
 use std::thread;
 use std::time::Duration;
 use structopt::StructOpt;
-use xio::common::*;
-use xio::netio::*;
+use xio::{common::*, netio::*, *};
 
-fn test01(io: &mut NetIO) {
+fn test01(io: &mut dyn NetIO) {
   let partyid = io.partyid(); // self partyid
   let msgid1 = "testmessgeidone".to_string();
   let msgid2 = "testmessgeidtwo".to_string();
@@ -98,7 +97,7 @@ fn main() {
   pretty_env_logger::init_timed();
 
   // get "--party_id <id>" from console command
-  let opt = NetIOCommandOpt::from_args();
+  let opt = CommandLineOpt::from_args();
   let partyid = opt.party_id;
   info!("netio option: {:?}", opt);
 
@@ -107,10 +106,10 @@ fn main() {
   let participants = get_default_participants(3);
 
   // New a NetIO
-  let mut io = NetIO::new(partyid, &participants).expect("new NetIO");
+  let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
 
   // Then, do what you want to do
-  test01(&mut io);
+  test01(io);
 
   // Get the communication statistics
   info!("{:?}", io.stat());

@@ -1,18 +1,20 @@
 use anyhow::format_err;
 use serde::Deserialize;
-// use std::collections::VecDeque;
 use std::fs;
 use std::path::Path;
+use structopt::StructOpt;
 
 #[derive(Debug, Clone)]
 pub struct OneData {
   pub data: Vec<u8>,
 }
 
-// #[derive(Debug, Clone)]
-// struct DataQueue {
-//   pub data: VecDeque<OneData>,
-// }
+#[derive(StructOpt, Debug)]
+#[structopt(rename_all = "snake_case")]
+pub struct CommandLineOpt {
+  #[structopt(short, long, default_value = "-1")]
+  pub party_id: u32,
+}
 
 /// The communication statistics
 #[derive(Default, Debug, Clone)]
@@ -26,7 +28,7 @@ pub struct NetStat {
 }
 
 /// Participant info
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct Participant {
   /// The party id, from 0 to n-1.
   pub partyid: u32,

@@ -1,10 +1,10 @@
 //!
 //!
-
 use crate::common::*;
 use crate::node_service::*;
 use crate::rsio::*;
 use crate::rsio_grpc::*;
+use crate::NetIO;
 use ::protobuf::Message;
 use anyhow::format_err;
 use crossbeam_channel::*;
@@ -14,49 +14,8 @@ use std::collections::{HashMap, HashSet};
 use std::result;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use structopt::StructOpt;
-// use std::{io, result, thread};
-// use std::env;
-// use std::io::Read;
-// use futures::executor::{ThreadPool, ThreadPoolBuilder};
 
-#[derive(StructOpt, Debug)]
-#[structopt(rename_all = "snake_case")]
-pub struct NetIOCommandOpt {
-  #[structopt(short, long, default_value = "-1")]
-  pub party_id: u32,
-}
-
-pub trait INetIO {
-  // pub fn init(&mut self) {}
-  fn stop(&mut self);
-
-  /// Return self partyid.
-  fn partyid(&self) -> u32;
-
-  fn parties(&self) -> u32;
-
-  /// Get the communication statistics.
-  fn stat(&self) -> NetStat;
-  fn set_send_timeout(&mut self, to: usize);
-
-  fn set_recv_timeout(&mut self, to: usize);
-
-  /// Recv a message from `partyid` with `msgid`.
-  fn recv(&mut self, partyid: u32, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error>;
-
-  /// Send a message `data` to `partyid` with `msgid`.
-  fn send(
-    &mut self,
-    partyid: u32,
-    msgid: &String,
-    data: &Vec<u8>,
-  ) -> result::Result<usize, anyhow::Error>;
-  /// Broadcast a message `data` to other parties(peers) with `msgid`.
-  fn broadcast(&mut self, msgid: &String, data: &Vec<u8>) -> result::Result<usize, anyhow::Error>;
-}
-
-pub struct NetIO {
+pub struct NetIOX {
   /// self party id
   partyid: u32,
   parties: u32,
@@ -89,18 +48,17 @@ pub struct NetIO {
   recv_timeout: usize,
 }
 
-impl NetIO {
+impl NetIOX {
   //!
   //! Simple example:
   //!
   //! ```rust
-  //! use xio::common::*;
-  //! use xio::netio::*;
+  //! use xio::{common::*, netio::*, *};
   //!
   //! let partyid = 0;
   //! let participants = get_default_participants(1);
   //!
-  //! let mut io = NetIO::new(partyid, &participants).expect("new NetIO");
+  //! let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
   //! io.stop();
   //! ```
   //!
@@ -231,7 +189,7 @@ impl NetIO {
   }
 }
 
-impl INetIO for NetIO {
+impl NetIO for NetIOX {
   // pub fn init(&mut self) {}
   fn stop(&mut self) {
     // todo! close & shutdown
