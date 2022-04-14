@@ -106,10 +106,10 @@ fn main() {
   let participants = make_default_participants!(3, 12345);
 
   // New a NetIO
-  let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
+  let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
 
   // Then, do what you want to do
-  test01(io);
+  test01(&mut io);
 
   // Get the communication statistics
   info!("{:?}", io.stat());

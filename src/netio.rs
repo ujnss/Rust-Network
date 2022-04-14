@@ -209,11 +209,9 @@ impl NetIOX {
     msgid_lock.insert(msgid.clone());
     self.cachedid.insert(msgid.clone());
   }
-}
 
-impl NetIO for NetIOX {
   // pub fn init(&mut self) {}
-  fn stop(&mut self) {
+  pub fn stop(&mut self) {
     // todo! close & shutdown
     // close client
 
@@ -224,7 +222,9 @@ impl NetIO for NetIOX {
       _dispatcher.stop();
     }
   }
+}
 
+impl NetIO for NetIOX {
   /// Return self partyid.
   fn partyid(&self) -> u32 {
     return self.partyid;

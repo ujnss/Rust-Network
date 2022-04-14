@@ -42,8 +42,8 @@ fn main() {
     let dispatcher = thread::spawn(move || {
       info!("partyid: {}", partyid);
       let participants = make_default_participants!(parties, 55555);
-      let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
-      test01(io);
+      let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
+      test01(&mut io);
       info!("partyid: {} {:?}", partyid, io.stat());
       io.stop();
     });

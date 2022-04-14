@@ -23,9 +23,6 @@ macro_rules! make_default_participants {
 }
 
 pub trait NetIO {
-  // pub fn init(&mut self) {}
-  fn stop(&mut self);
-
   /// Return self partyid.
   fn partyid(&self) -> u32;
 

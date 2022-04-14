@@ -48,8 +48,8 @@ fn main() {
     let dispatcher = thread::spawn(move || {
       info!("partyid: {}", partyid);
       let participants = get_default_participants(parties);
-      let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
-      test01(io);
+      let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
+      test01(&mut io);
       info!("partyid: {} {:?}", partyid, io.stat());
       io.stop();
     });
