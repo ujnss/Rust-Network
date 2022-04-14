@@ -13,7 +13,7 @@ echo "run examples/${prog}.rs ..."
 
 mkdir -p log
 
-if [ "${prog}" == "ex03" ]; then
+if [ "${prog}" == "ex03" ] || [ "${prog}" == "ex05" ]; then
   cargo run --example ${prog} >log/${prog}.log 2>&1 &
 else
   cargo run --example ${prog} -- --party_id 0 >log/${prog}-0.log 2>&1 &

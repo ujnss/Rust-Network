@@ -139,7 +139,7 @@ impl NetIOX {
       }
     }
 
-    let s = Self {
+    let mut s = Self {
       partyid: partyid,
       parties: parties,
       server: server,
@@ -158,7 +158,29 @@ impl NetIOX {
       send_timeout: 60,
       recv_timeout: 300,
     };
+
+    {
+      // for sync, init the client
+      let msgid = "".to_string();
+      let data = "0".to_string().into_bytes();
+      s.broadcast(&msgid, &data).unwrap();
+      for p in 0..s.parties() {
+        if p == partyid {
+          continue;
+        }
+        let _ = s.recv(p, &msgid).unwrap();
+      }
+      s.reset_stat();
+    }
+
     Ok(s)
+  }
+
+  fn reset_stat(&mut self) {
+    let mut stat = self.stat.lock().unwrap();
+    stat.sent_count = 0;
+    stat.sent_bytes = 0;
+    stat.sent_bytes_all = 0;
   }
 
   fn make_partyid_msgid(&mut self, partyid: u32, msgid: &String) -> String {
