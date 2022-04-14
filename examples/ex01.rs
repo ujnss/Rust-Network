@@ -6,7 +6,7 @@ use std::env;
 use structopt::StructOpt;
 use xio::{common::*, netio::*, *};
 
-fn test01(io: &mut dyn NetIO) {
+fn test01<IO: NetIO>(io: &mut IO) {
   let partyid = io.partyid(); // self partyid
   let msgid = "for test".to_string(); // "".to_string();
   let mut data = "0-abcd-efgh-ijkl-mnop".to_string().into_bytes();
@@ -47,10 +47,10 @@ fn main() {
   let participants = make_default_participants!(3);
 
   // New a NetIO
-  let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
+  let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
 
   // Then, do what you want to do
-  test01(io);
+  test01(&mut io);
 
   // Get the communication statistics
   info!("{:?}", io.stat());
