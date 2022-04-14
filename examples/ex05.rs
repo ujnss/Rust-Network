@@ -9,24 +9,27 @@ use xio::{common::*, netio::*, *};
 
 fn test01(io: &mut dyn NetIO) {
   let partyid = io.partyid(); // self partyid
-  let msgid = "".to_string();
   let data = "0".to_string().into_bytes();
 
   for i in 0..5 {
-    let st = time::Instant::now();
-    io.broadcast(&msgid, &data).unwrap();
-    for p in 0..io.parties() {
-      if p == partyid {
-        continue;
+    let msgid = i.to_string();
+    for j in 0..5 {
+      let st = time::Instant::now();
+      io.broadcast(&msgid, &data).unwrap();
+      for p in 0..io.parties() {
+        if p == partyid {
+          continue;
+        }
+        let _ = io.recv(p, &msgid).unwrap();
       }
-      let _ = io.recv(p, &msgid).unwrap();
+      println!(
+        "partyid: {} loop: {}-{} elapsed(s): {}",
+        partyid,
+        i,
+        j,
+        st.elapsed().as_secs_f64()
+      );
     }
-    println!(
-      "partyid: {} loop: {} elapsed(s): {}",
-      partyid,
-      i,
-      st.elapsed().as_secs_f64()
-    );
   }
 }
 

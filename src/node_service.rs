@@ -26,6 +26,8 @@ impl MyMessageDispatcher {
     let _dispatcher = thread::spawn(move || {
       let mut reqs: HashMap<String, VecDeque<StepCallRequest>> = HashMap::new();
       loop {
+        let mut wait_t = 1_000_000; // us
+
         // step1, if the queue has any data
         for (__partyid, vdq) in &mut reqs {
           loop {
@@ -48,6 +50,7 @@ impl MyMessageDispatcher {
                   None => {
                     debug!(">not found tx of msgid: {}", msgid); // warn!
                     vdq.push_front(req);
+                    wait_t = 1;
                     break;
                   }
                 }
@@ -57,7 +60,7 @@ impl MyMessageDispatcher {
         }
 
         // step2, if the queue does not have any data
-        let msg_message = step_rx.recv_timeout(Duration::from_secs(1));
+        let msg_message = step_rx.recv_timeout(Duration::from_micros(wait_t));
         match msg_message {
           Err(err) => match err {
             crossbeam_channel::RecvTimeoutError::Timeout => {
