@@ -1,5 +1,6 @@
 use anyhow::format_err;
 use serde::Deserialize;
+use serde::Serialize;
 use std::fs;
 use std::path::Path;
 use structopt::StructOpt;
@@ -17,7 +18,7 @@ pub struct CommandLineOpt {
 }
 
 /// The communication statistics
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct NetStat {
   /// Number of calls to `io.send`.
   pub sent_count: usize,
@@ -45,6 +46,23 @@ impl Participant {
   pub fn from_default_baseport(parties: u32, base_port: u32) -> Vec<Participant> {
     let mut participants = Vec::new();
     for i in 0..parties {
+      let participant = Participant {
+        partyid: i,
+        nodeid: "node".to_string() + &i.to_string(),
+        addr: "127.0.0.1:".to_string() + &(i + base_port).to_string(),
+      };
+      participants.push(participant);
+    }
+    return participants;
+  }
+  pub fn from_default_partyids_baseport(
+    parties: u32,
+    partyids: &Vec<u32>,
+    base_port: u32,
+  ) -> Vec<Participant> {
+    assert_eq!(parties, partyids.len() as u32);
+    let mut participants = Vec::new();
+    for i in partyids.clone() {
       let participant = Participant {
         partyid: i,
         nodeid: "node".to_string() + &i.to_string(),

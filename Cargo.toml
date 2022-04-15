@@ -70,3 +70,7 @@ path = "examples/ex04.rs"
 [[example]]
 name = "ex05"
 path = "examples/ex05.rs"
+
+[[example]]
+name = "ex06"
+path = "examples/ex06.rs"

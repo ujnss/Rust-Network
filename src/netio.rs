@@ -46,6 +46,8 @@ pub struct NetIOX {
   send_timeout: usize,
   /// recv timeout, default is 300s
   recv_timeout: usize,
+
+  peerids: Vec<u32>,
 }
 
 impl NetIOX {
@@ -77,6 +79,7 @@ impl NetIOX {
     // let mut nodeid_partyid = HashMap::new();
     let mut partyid_nodeid = HashMap::new();
     let (step_tx, step_rx) = unbounded::<StepCallRequest>();
+    let mut peerids = Vec::new();
 
     ////////////////////////////////////////////////
     // threads
@@ -109,7 +112,18 @@ impl NetIOX {
       .keepalive_time(Duration::from_secs(6))
       .keepalive_timeout(Duration::from_secs(21));
 
-    let self_node = participants.get(partyid as usize).unwrap();
+    let mut self_node = None;
+    for p in participants {
+      if partyid == p.partyid {
+        self_node = Some(p.clone());
+        break;
+      }
+    }
+    if self_node == None {
+      return Err(format_err!("partyid {} not exist in participants", partyid));
+    }
+
+    let self_node = self_node.unwrap();
     let vs: Vec<&str> = self_node.addr.splitn(2, ":").collect();
     let host = vs[0].to_string();
     let port = vs[1].to_string().parse::<u16>().unwrap();
@@ -131,6 +145,7 @@ impl NetIOX {
       // nodeid_partyid.insert(p.nodeid.clone(), p.partyid);
       partyid_nodeid.insert(p.partyid, p.nodeid.clone());
       if partyid != p.partyid {
+        peerids.push(p.partyid);
         info!("{} connect to {} {}", partyid, p.partyid, p.addr);
         let env = Arc::new(EnvBuilder::new().build());
         let ch = ChannelBuilder::new(env).connect(&p.addr);
@@ -138,6 +153,7 @@ impl NetIOX {
         clients.insert(p.nodeid.clone(), client);
       }
     }
+    peerids.sort();
 
     let mut s = Self {
       partyid: partyid,
@@ -157,17 +173,16 @@ impl NetIOX {
 
       send_timeout: 60,
       recv_timeout: 300,
+
+      peerids: peerids,
     };
 
     {
       // for sync, init the client
       let msgid = "".to_string();
-      let data = "0".to_string().into_bytes();
+      let data = "-".to_string().into_bytes();
       s.broadcast(&msgid, &data).unwrap();
-      for p in 0..s.parties() {
-        if p == partyid {
-          continue;
-        }
+      for p in s.peerids.clone() {
         let _ = s.recv(p, &msgid).unwrap();
       }
       s.reset_stat();
@@ -176,7 +191,7 @@ impl NetIOX {
     Ok(s)
   }
 
-  fn reset_stat(&mut self) {
+  pub fn reset_stat(&mut self) {
     let mut stat = self.stat.lock().unwrap();
     stat.sent_count = 0;
     stat.sent_bytes = 0;
@@ -221,6 +236,36 @@ impl NetIOX {
       let mut _dispatcher = self.msg_dispatcher.lock().map_err(|_| error!("")).unwrap();
       _dispatcher.stop();
     }
+  }
+
+  pub fn agg_stat(&mut self, agg_party: u32) -> NetStat {
+    let mut stat_agg = NetStat::default();
+    if !self.partyid_nodeid.contains_key(&agg_party) {
+      return stat_agg;
+    }
+
+    let self_stat = self.stat.lock().unwrap().clone();
+    let s = bincode::serialize(&self_stat).unwrap();
+    let mut stats = Vec::new();
+    let msgid = "agg".to_string();
+
+    if agg_party == self.partyid() {
+      stats.push(self_stat);
+      for p in self.peerids.clone() {
+        let m = self.recv(p, &msgid).unwrap();
+        stats.push(bincode::deserialize(&m).unwrap());
+      }
+
+      for s in stats {
+        stat_agg.sent_count += s.sent_count;
+        stat_agg.sent_bytes += s.sent_bytes;
+        stat_agg.sent_bytes_all += s.sent_bytes_all;
+      }
+    } else {
+      self.send(agg_party, &msgid, &s).unwrap();
+    }
+
+    stat_agg
   }
 }
 
@@ -331,14 +376,7 @@ impl NetIO for NetIOX {
 
   /// Broadcast a message `data` to other parties(peers) with `msgid`.
   fn broadcast(&mut self, msgid: &String, data: &Vec<u8>) -> result::Result<usize, anyhow::Error> {
-    // ??cannot borrow `*self` as mutable because it is also borrowed as immutable
-    let mut peerids = Vec::new();
-    for k in self.partyid_nodeid.keys() {
-      if *k != self.partyid {
-        peerids.push(*k);
-      }
-    }
-    for peerid in peerids {
+    for peerid in self.peerids.clone() {
       self.send(peerid, msgid, data)?;
     }
     Ok(data.len())

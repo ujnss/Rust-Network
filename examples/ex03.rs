@@ -51,6 +51,7 @@ fn main() {
       let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
       test01(&mut io);
       info!("partyid: {} {:?}", partyid, io.stat());
+      info!("partyid: {} {:?}", partyid, io.agg_stat(0));
       io.stop();
     });
     dispatchers.push(dispatcher);

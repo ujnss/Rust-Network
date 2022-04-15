@@ -113,6 +113,7 @@ fn main() {
 
   // Get the communication statistics
   info!("{:?}", io.stat());
+  info!("{:?}", io.agg_stat(0));
 
   // Close the connections and stop the server.
   io.stop();

@@ -14,6 +14,9 @@ use std::result;
 
 #[macro_export]
 macro_rules! make_default_participants {
+  ($parties:expr, $partyids:expr, $base_port:expr) => {{
+    Participant::from_default_partyids_baseport($parties, $partyids, $base_port)
+  }};
   ($parties:expr, $base_port:expr) => {{
     Participant::from_default_baseport($parties, $base_port)
   }};
