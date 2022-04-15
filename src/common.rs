@@ -2,6 +2,7 @@ use anyhow::format_err;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fs;
+use std::ops::Div;
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -26,6 +27,17 @@ pub struct NetStat {
   pub sent_bytes: usize,
   /// Total size. Protobuf serialized data (message id, real data, etc.) size.
   pub sent_bytes_all: usize,
+}
+
+impl Div<usize> for NetStat {
+  type Output = NetStat;
+  fn div(self, rhs: usize) -> NetStat {
+    NetStat {
+      sent_count: self.sent_count / rhs,
+      sent_bytes: self.sent_bytes / rhs,
+      sent_bytes_all: self.sent_bytes_all / rhs,
+    }
+  }
 }
 
 /// Participant info

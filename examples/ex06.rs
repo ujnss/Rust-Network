@@ -50,7 +50,13 @@ fn main() {
       let mut io = NetIOX::new(partyid, &participants).expect("new NetIO");
       test01(&mut io, &partyids_);
       println!("partyid: {} {:?}", partyid, io.stat());
-      println!("partyid: {} {:?}", partyid, io.agg_stat(partyids_[0]));
+      let agg_stat = io.agg_stat(partyids_[0]);
+      println!("partyid: {} {:?}", partyid, agg_stat);
+      println!(
+        "partyid: {} avg {:?}",
+        partyid,
+        agg_stat / (parties as usize)
+      );
       io.stop();
     });
     dispatchers.push(dispatcher);
