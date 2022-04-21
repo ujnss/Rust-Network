@@ -56,16 +56,8 @@ impl Participant {
     return Participant::from_default_baseport(parties, 13500);
   }
   pub fn from_default_baseport(parties: u32, base_port: u32) -> Vec<Participant> {
-    let mut participants = Vec::new();
-    for i in 0..parties {
-      let participant = Participant {
-        partyid: i,
-        nodeid: "node".to_string() + &i.to_string(),
-        addr: "127.0.0.1:".to_string() + &(i + base_port).to_string(),
-      };
-      participants.push(participant);
-    }
-    return participants;
+    let partyids: Vec<u32> = (0..parties).collect();
+    return Participant::from_default_partyids_baseport(parties, &partyids, base_port);
   }
   pub fn from_default_partyids_baseport(
     parties: u32,
