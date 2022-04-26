@@ -179,16 +179,21 @@ impl NetIOX {
 
     {
       // for sync, init the client
-      let msgid = "".to_string();
-      let data = "-".to_string().into_bytes();
-      s.broadcast(&msgid, &data).unwrap();
-      for p in s.peerids.clone() {
-        let _ = s.recv(p, &msgid).unwrap();
-      }
+      s.sync_with(&"sync-with".to_string());
       s.reset_stat();
     }
 
     Ok(s)
+  }
+
+  /// Sync each other
+  pub fn sync_with(&mut self, msgid: &String) {
+    // for sync, init the client
+    let data = "-".to_string().into_bytes();
+    self.broadcast(&msgid, &data).unwrap();
+    for p in self.peerids.clone() {
+      let _ = self.recv(p, &msgid).unwrap();
+    }
   }
 
   pub fn reset_stat(&mut self) {
@@ -381,11 +386,6 @@ impl NetIO for NetIOX {
     }
     Ok(data.len())
   }
-
-  // /// Sync each other
-  // pub fn sync(&mut self) {
-
-  // }
 
   // todo: nodeid version
   // fn make_nodeid_msgid(&mut self, nodeid: String, msgid: String) -> String {
