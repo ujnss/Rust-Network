@@ -2,7 +2,7 @@ use anyhow::format_err;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fs;
-use std::ops::Div;
+use std::ops::{Div,Sub,Add};
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -36,6 +36,28 @@ impl Div<usize> for NetStat {
       sent_count: self.sent_count / rhs,
       sent_bytes: self.sent_bytes / rhs,
       sent_bytes_all: self.sent_bytes_all / rhs,
+    }
+  }
+}
+
+impl Add for NetStat {
+  type Output = NetStat;
+  fn add(self, rhs: NetStat) -> NetStat {
+    NetStat {
+      sent_count: self.sent_count + rhs.sent_count,
+      sent_bytes: self.sent_bytes + rhs.sent_bytes,
+      sent_bytes_all: self.sent_bytes_all + rhs.sent_bytes_all,
+    }
+  }
+}
+
+impl Sub for NetStat {
+  type Output = NetStat;
+  fn sub(self, rhs: NetStat) -> NetStat {
+    NetStat {
+      sent_count: self.sent_count - rhs.sent_count,
+      sent_bytes: self.sent_bytes - rhs.sent_bytes,
+      sent_bytes_all: self.sent_bytes_all - rhs.sent_bytes_all,
     }
   }
 }

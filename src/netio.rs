@@ -188,12 +188,14 @@ impl NetIOX {
 
   /// Sync each other
   pub fn sync_with(&mut self, msgid: &String) {
+    let stat_keep = self.stat.clone();
     // for sync, init the client
     let data = "-".to_string().into_bytes();
     self.broadcast(&msgid, &data).unwrap();
     for p in self.peerids.clone() {
       let _ = self.recv(p, &msgid).unwrap();
     }
+    self.stat = stat_keep;
   }
 
   pub fn reset_stat(&mut self) {
@@ -271,6 +273,39 @@ impl NetIOX {
     }
 
     stat_agg
+  }
+
+  /// Recv a message from `partyid` with `msgid`.
+  pub fn recv_any(&mut self, msgid: &String) -> result::Result<Vec<u8>, anyhow::Error> {
+    loop {
+      let peerids = self.peerids.clone();
+      for p in peerids {
+        let partyid = p;
+        let msgid_ = self.make_partyid_msgid(partyid, msgid);
+        self.register_channel(&msgid_);
+        
+        // todo: optimized
+        let rx = self.msg_rxs.get_mut(&msgid_).unwrap();
+
+        let errmsg;
+        let res = rx.recv_timeout(Duration::from_millis(1));
+        match res {
+          Err(err) => match err {
+            crossbeam_channel::RecvTimeoutError::Timeout => {
+              debug!("channel recv timeout, retry");
+            }
+            crossbeam_channel::RecvTimeoutError::Disconnected => {
+              errmsg = format!("channel recv err {:?}", err);
+              return Err(format_err!("{}", errmsg));
+            }
+          },
+          Ok(vu8) => {
+            // todo: optimized
+            return Ok(vu8.data);
+          }
+        }
+      }
+    }
   }
 }
 
