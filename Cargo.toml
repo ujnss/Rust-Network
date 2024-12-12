@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-grpcio = "0.7"
+grpcio = "0.11"
 protobuf = { version = "2.*.*", features = ["with-bytes"] }
 protobuf-codegen = "2.*.*"
 protoc = "2.*.*"
