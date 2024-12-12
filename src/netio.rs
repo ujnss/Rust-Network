@@ -61,7 +61,6 @@ impl NetIOX {
   //! let participants = get_default_participants(1);
   //!
   //! let io: &mut dyn NetIO = &mut NetIOX::new(partyid, &participants).expect("new NetIO");
-  //! io.stop();
   //! ```
   //!
   //! For more details see [ex01.rs](../../src/ex01/ex01.rs.html),
